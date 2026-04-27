@@ -1,7 +1,7 @@
 # Xanther CLI
 
 <p align="center">
-  <img src="assets/xanther-cli-banner.png" alt="Xanther CLI" width="700" />
+  <img src="assets/xce-hero.png" alt="Xanther" width="700" />
 </p>
 
 <p align="center">
@@ -16,6 +16,10 @@
 </p>
 
 ---
+
+<p align="center">
+  <img src="assets/xce-benchmarks.png" alt="78.2% on SWE-bench Verified" width="600" />
+</p>
 
 ## What is Xanther CLI?
 
@@ -140,6 +144,10 @@ Xanther CLI stores its config in `.xanther/config.json` in your project root:
 Add `.xanther/` to your `.gitignore` — it contains your API key.
 
 ## Works Everywhere
+
+<p align="center">
+  <img src="assets/xce-integrations.png" alt="Works with any coding agent via MCP" width="600" />
+</p>
 
 | Git Host | Supported | Auto-update |
 |---|---|---|
