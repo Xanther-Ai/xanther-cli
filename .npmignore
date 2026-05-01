@@ -1,0 +1,7 @@
+src/
+tsconfig.json
+.git/
+assets/
+node_modules/
+*.ts
+!*.d.ts
