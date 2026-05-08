@@ -16,9 +16,10 @@ program
 
 program
   .command("init")
-  .description("Initialize and perform a full index of the current repository")
-  .requiredOption("--api-key <key>", "Your Xanther API key")
+  .description("Initialize and index the current repository")
+  .requiredOption("--api-key <key>", "Your Xanther API key (get one at app.xanther.ai)")
   .option("--branch <branch>", "Branch to index", "main")
+  .option("--repo <url>", "Repository URL (auto-detected from git remote if not provided)")
   .option("--no-hook", "Skip installing the git post-commit hook")
   .action(initCommand);
 

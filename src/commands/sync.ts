@@ -1,8 +1,7 @@
 import chalk from "chalk";
 import ora from "ora";
-import { loadConfig, getRepoName } from "../utils/config.js";
-import { getChangedFiles, uploadFiles } from "../utils/upload.js";
-import { triggerIncrementalIndex } from "../utils/api.js";
+import { loadConfig, getRepoUrl } from "../utils/config.js";
+import { triggerIndex } from "../utils/api.js";
 
 interface SyncOptions {
   full?: boolean;
@@ -10,34 +9,30 @@ interface SyncOptions {
 
 export async function syncCommand(options: SyncOptions) {
   const config = loadConfig();
-  if (!config) {
-    console.log(chalk.red("\n  Not initialized. Run: xanther-cli init --api-key <key>\n"));
+  if (!config?.api_key) {
+    console.error(chalk.red("\n  Not initialized. Run: xanther-cli init --api-key <key>\n"));
     process.exit(1);
   }
 
-  const repoName = getRepoName();
-  console.log(chalk.bold(`\n  Xanther CLI — Sync (${repoName})\n`));
+  console.log(chalk.bold("\n  Xanther CLI — Sync\n"));
 
-  if (options.full) {
-    console.log("  Mode: Full re-index\n");
-    // Same as init upload flow
-  } else {
-    const spinner = ora("Finding changed files...").start();
-    const changedFiles = await getChangedFiles(config.last_commit);
-    if (changedFiles.length === 0) {
-      spinner.succeed("No changes since last sync");
-      return;
-    }
-    spinner.succeed(`${changedFiles.length} files changed`);
-
-    const uploadSpinner = ora("Uploading changes...").start();
-    await uploadFiles(config.api_key, changedFiles);
-    uploadSpinner.succeed("Changes uploaded");
-
-    const indexSpinner = ora("Triggering incremental index...").start();
-    await triggerIncrementalIndex(config.api_key, repoName, changedFiles);
-    indexSpinner.succeed("Incremental index started");
+  const repoUrl = config.repo_url || getRepoUrl();
+  if (!repoUrl) {
+    console.error(chalk.red("  Error: No repository URL configured.\n"));
+    process.exit(1);
   }
 
-  console.log(chalk.green("\n  Sync complete.\n"));
+  const branch = config.branch || "main";
+  console.log(`  Repository: ${chalk.cyan(repoUrl)}`);
+  console.log(`  Branch:     ${chalk.cyan(branch)}\n`);
+
+  const spinner = ora("Triggering re-index...").start();
+  try {
+    const { jobId } = await triggerIndex(config.api_key, repoUrl, branch);
+    spinner.succeed(`Re-index started (job: ${chalk.dim(jobId)})`);
+    console.log(`\n  Check progress: ${chalk.cyan("npx xanther-cli status")}\n`);
+  } catch (err: any) {
+    spinner.fail(`Sync failed: ${err.message}`);
+    process.exit(1);
+  }
 }

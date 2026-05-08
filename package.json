@@ -1,6 +1,6 @@
 {
   "name": "xanther-cli",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Index your codebase and supercharge your coding agent with Xanther Context Engine",
   "bin": {
     "xanther-cli": "./bin/cli.js"

@@ -9,6 +9,7 @@ export interface XantherConfig {
   api_key: string;
   api_url: string;
   repo_id?: string;
+  repo_url?: string;
   branch?: string;
   last_sync?: string;
   last_commit?: string;
@@ -47,5 +48,18 @@ export function getRepoName(): string {
     return match ? match[1] : path.basename(process.cwd());
   } catch {
     return path.basename(process.cwd());
+  }
+}
+
+export function getRepoUrl(): string | null {
+  try {
+    const remote = execSync("git remote get-url origin", { encoding: "utf-8" }).trim();
+    // Convert SSH URLs to HTTPS
+    if (remote.startsWith("git@")) {
+      return remote.replace("git@github.com:", "https://github.com/").replace(/\.git$/, "");
+    }
+    return remote.replace(/\.git$/, "");
+  } catch {
+    return null;
   }
 }

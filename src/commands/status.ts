@@ -1,40 +1,62 @@
 import chalk from "chalk";
-import { loadConfig, getRepoName } from "../utils/config.js";
-import { getRepoStatus } from "../utils/api.js";
+import ora from "ora";
+import { loadConfig } from "../utils/config.js";
+import { listRepos, getUsage } from "../utils/api.js";
 
 export async function statusCommand() {
   const config = loadConfig();
-  if (!config) {
-    console.log(chalk.red("\n  Not initialized. Run: xanther-cli init --api-key <key>\n"));
+  if (!config?.api_key) {
+    console.error(chalk.red("\n  Not initialized. Run: xanther-cli init --api-key <key>\n"));
     process.exit(1);
   }
 
-  const repoName = getRepoName();
-  console.log(chalk.bold(`\n  Xanther CLI — Status\n`));
+  console.log(chalk.bold("\n  Xanther CLI — Status\n"));
+
+  const spinner = ora("Fetching status...").start();
 
   try {
-    const status = await getRepoStatus(config.api_key, repoName);
-    console.log(`  Repository: ${chalk.cyan(repoName)}`);
-    console.log(`  Status:     ${formatStatus(status.status)}`);
-    console.log(`  Nodes:      ${chalk.white(status.node_count.toLocaleString())}`);
-    console.log(`  Last sync:  ${chalk.gray(status.last_sync || "never")}`);
-    console.log(`  Plan:       ${chalk.white(status.tier)} (${status.queries_used}/${status.queries_limit} queries)\n`);
-  } catch (err: any) {
-    console.log(chalk.red(`  Error: ${err.message}\n`));
-    process.exit(1);
-  }
-}
+    const [repos, usage] = await Promise.all([
+      listRepos(config.api_key),
+      getUsage(config.api_key).catch(() => null),
+    ]);
 
-function formatStatus(status: string): string {
-  switch (status) {
-    case "completed": return chalk.green("Indexed");
-    case "queued": return chalk.yellow("Queued");
-    case "cloning": return chalk.blue("Cloning");
-    case "parsing": return chalk.blue("Parsing");
-    case "embedding": return chalk.blue("Embedding");
-    case "documenting": return chalk.blue("Documenting");
-    case "storing": return chalk.blue("Storing");
-    case "failed": return chalk.red("Failed");
-    default: return chalk.gray(status);
+    spinner.stop();
+
+    if (usage) {
+      const used = usage.current.queries_used;
+      console.log(`  Usage this month: ${chalk.cyan(used.toString())} queries\n`);
+    }
+
+    if (repos.length === 0) {
+      console.log(`  No repositories indexed yet.\n`);
+      return;
+    }
+
+    console.log(`  Repositories (${repos.length}):\n`);
+
+    for (const repo of repos) {
+      const statusColor = repo.status === "completed"
+        ? chalk.green
+        : repo.status === "failed"
+          ? chalk.red
+          : chalk.yellow;
+
+      const statusStr = statusColor(repo.status.padEnd(12));
+      const nodes = repo.node_count > 0 ? chalk.dim(` (${repo.node_count} nodes)`) : "";
+      const progress = repo.status !== "completed" && repo.status !== "failed"
+        ? chalk.dim(` ${repo.progress_pct}%`)
+        : "";
+
+      console.log(`    ${statusStr} ${chalk.cyan(repo.repo_url)}${nodes}${progress}`);
+
+      if (repo.error_message) {
+        console.log(`               ${chalk.red(repo.error_message)}`);
+      }
+    }
+
+    console.log();
+  } catch (err: any) {
+    spinner.fail(`Status check failed: ${err.message}`);
+    process.exit(1);
   }
 }
